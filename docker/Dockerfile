@@ -1,4 +1,4 @@
-FROM php:7-apache
+FROM php:8.3-apache-bookworm
 
 ARG BUILD_DATE
 ARG JOONTE_VERSION
@@ -16,7 +16,7 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 
 RUN chmod +x /usr/local/bin/install-php-extensions && \
     sync && \
-    install-php-extensions apcu gd geoip imap json libxml mailparse mbstring memcached mysqli openssl tidy xml zlib && \
+    install-php-extensions apcu gd imap mailparse memcached mysqli tidy && \
     a2enmod rewrite && \
     apt-get update && \
     apt-get install -y \
@@ -31,6 +31,10 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
         unzip \
         wget \
         wkhtmltopdf && \
+    # Install Composer
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
+    # Install GeoIP2 PHP library globally
+    composer global require geoip2/geoip2:~2.0 && \
     rm -rf /var/lib/apt/lists/* && \
     echo "*/1 * * * * sh /var/www/html/scripts/billing/check.cron.run.sh >/dev/stdout 2>&1" > /etc/cron.d/joonte && \
     chmod 644 /etc/cron.d/joonte && \

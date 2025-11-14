@@ -7,8 +7,12 @@ Docker image for [Joonte Billing System](https://joonte.com/) - a free billing s
 
 ## Features
 
-- Based on PHP 7.4 with Apache
-- Includes all required PHP extensions and system packages
+- Based on **PHP 8.3** with Apache on Debian Bookworm
+- Includes all required PHP extensions (apcu, gd, imap, mailparse, memcached, mysqli, tidy)
+- **wkhtmltopdf** for PDF document generation
+- **GeoIP2** library via Composer for geolocation features
+- **Supervisor** for managing services (Apache, cron, memcached)
+- **Installer patches**: auto-detection of memcached, symlink fixes for mod_php
 - Multi-arch support (amd64, arm64)
 - Automatic updates with latest JBS version and commits
 
