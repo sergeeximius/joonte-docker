@@ -46,10 +46,12 @@ USER root
 # Supervisor configuration to manage services (apache, cron, memcached)
 COPY supervisor/jbs.conf /etc/supervisor/conf.d/jbs.conf
 
-# Temporary patch for installer (cache config & symlink fix)
-COPY patches/jbs_installer_fix.patch /tmp/jbs_installer_fix.patch
-RUN echo "Applying installer patch (cache & symlink fixes)" && \
-        patch -p0 < /tmp/jbs_installer_fix.patch || { echo 'Patch failed'; exit 1; }
+# Installer patches (cache config & symlink absolute paths)
+COPY patches/01-cache-config.patch /tmp/01-cache-config.patch
+COPY patches/02-symlink-absolute.patch /tmp/02-symlink-absolute.patch
+RUN echo "Applying installer patches (cache & symlink fixes)" && \
+        patch -p0 --no-backup-if-mismatch < /tmp/01-cache-config.patch && \
+        patch -p0 --no-backup-if-mismatch < /tmp/02-symlink-absolute.patch && \
+        rm /tmp/*.patch || { echo 'Patch application failed'; exit 1; }
 
-# Default command: run supervisord in foreground
 CMD ["/usr/bin/supervisord", "-n"]

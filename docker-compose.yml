@@ -13,6 +13,7 @@ services:
 
   jbs:
     image: ssedov/jbs:2.6.19-89fec93
+    pull_policy: always
     expose:
       - "80"
     volumes:
