@@ -1,0 +1,41 @@
+--- install/index.php	2025-11-14 00:00:00.000000000 +0000
++++ install/index.php	2025-11-14 00:00:00.000000000 +0000
+@@ -505,17 +505,18 @@
+ 		$File = SPrintF('%s/hosts/%s/host.ini',SYSTEM_PATH,HOST_ID);
+ 		#-------------------------------------------------------------------------------
+ 		if(!File_Exists($File)){
+ 			#-------------------------------------------------------------------------------
+ 			Array_UnShift($HostsIDs,HOST_ID);
+ 			#-------------------------------------------------------------------------------
+-			if(!File_Put_Contents($File,SPrintF("HostsIDs=%s\nmemcache.port=11211",Implode(',',$HostsIDs))))
+-				Error(SPrintF('Ошибка записи файла (%s)',$File));
+-			#-------------------------------------------------------------------------------
+-			if(!File_Put_Contents($File,SPrintF("HostsIDs=%s\nmemcached.port=11211",Implode(',',$HostsIDs))))
+-				Error(SPrintF('Ошибка записи файла (%s)',$File));
+-			#-------------------------------------------------------------------------------
+-			if(!File_Put_Contents($File,SPrintF("HostsIDs=%s\nredis.port=6379",Implode(',',$HostsIDs))))
++			$CacheConfig = SPrintF("HostsIDs=%s",Implode(',',$HostsIDs));
++			if(Extension_Loaded('memcache'))
++				$CacheConfig .= "\nmemcache.port=11211";
++			if(Extension_Loaded('memcached'))
++				$CacheConfig .= "\nmemcached.port=11211";
++			if(Extension_Loaded('redis'))
++				$CacheConfig .= "\nredis.port=6379";
++			if(!File_Put_Contents($File,$CacheConfig))
+ 				Error(SPrintF('Ошибка записи файла (%s)',$File));
+ 			#-------------------------------------------------------------------------------
+ 		}
+ 		#-------------------------------------------------------------------------------
+ 		$Link = SPrintF('%s/hosts/%s/tmp/public',SYSTEM_PATH,HOST_ID);
+@@ -523,9 +524,9 @@
+ 		if(!File_Exists($Link)){
+ 			#-------------------------------------------------------------------------------
+ 			if(!@MkDir($Link,0755,TRUE))
+ 				Error(SPrintF('Не возможно создать директорию (%s)',$Link));
+ 			#-------------------------------------------------------------------------------
+-			if(!@SymLink(SPrintF('./hosts/%s/tmp/public',HOST_ID),'./public'))
++			if(!@SymLink(SPrintF('%s/hosts/%s/tmp/public', SYSTEM_PATH, HOST_ID), SPrintF('%s/public', SYSTEM_PATH)))
+ 				Error(SPrintF('Не возможно создать символическую ссылку (%s)',$Link));
+ 			#-------------------------------------------------------------------------------
+ 		}
+ 		#-------------------------------------------------------------------------------
