@@ -1,0 +1,70 @@
+name: Daily Docker Build
+
+on:
+  schedule:
+    # Запускается ежедневно в 00:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch: # Позволяет запустить вручную через GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get Joonte version and commit SHA
+        id: vars
+        run: |
+          CURRENT_COMMIT=$(curl -s https://api.github.com/repos/joonte/jbs/commits/master | grep '"sha"' | head -1 | cut -d'"' -f4)
+          SHORT_COMMIT_SHA=$(echo $CURRENT_COMMIT | cut -c1-7)
+          JOONTE_VERSION=$(curl -s https://joonte.com/public/version | awk -F'"' '/version/{print $4}' | sed 's/^v//')
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+          echo "commit_sha=$SHORT_COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "version=$JOONTE_VERSION" >> $GITHUB_OUTPUT
+          echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
+
+          echo "Building version: $JOONTE_VERSION-$SHORT_COMMIT_SHA"
+
+      - name: Build and push latest
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/jbs:latest
+          build-args: |
+            BUILD_DATE=${{ steps.vars.outputs.build_date }}
+            JOONTE_VERSION=${{ steps.vars.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push versioned
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/jbs:${{ steps.vars.outputs.version }}-${{ steps.vars.outputs.commit_sha }}
+          build-args: |
+            BUILD_DATE=${{ steps.vars.outputs.build_date }}
+            JOONTE_VERSION=${{ steps.vars.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Daily Docker build failed"
+          echo "Check the workflow run for details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
